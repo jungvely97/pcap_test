@@ -53,7 +53,7 @@ void PrintTCPHeader(const u_char *packet);
 
 int main(int argc, char* argv[]) {
     if (argc != 2){
-    printf("write 2\n");
+    printf("write ens33\n");
     exit(1);
     }
     struct pcap_pkthdr* header;
@@ -104,7 +104,7 @@ void PrintIPHeader(const u_char *packet){
 void PrintTCPHeader(const u_char *packet){
     TCPH *th;
     th = (TCPH *)packet;
-    printf("======== TCP Heather ========");
+    printf("======== TCP Heather ========\n");
     printf("Src Port : %d\n", ntohs(th ->TCPSrcPort));
     printf("Dst Port : %d\n", ntohs(th -> TCPDstPort));
 }
