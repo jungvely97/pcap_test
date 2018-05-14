@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <string.h>
+#include <unistd.h>
 
 #define BUFSIZE 1024
 
@@ -49,7 +51,7 @@ typedef struct TCPHeader{
 }TCPH;
 typedef struct HttpH
 {
-    uint16_t HTP[16];
+     const char HTP[ ];
 }HttpH;
 
 void PrintEthernetHeader(const u_char *packet);
@@ -62,6 +64,8 @@ void help(){
     printf("Sample : pcap_test ens33\n");
 }
 
+u_int len;
+
 int main(int argc, char* argv[]) {
     if (argc != 2){
         help();
@@ -72,7 +76,8 @@ int main(int argc, char* argv[]) {
     char* dev = argv[1];
     char errbuf[PCAP_ERRBUF_SIZE];
     IPH *tlen;
-    u_int lengh;
+    TCPH *tcp_off;
+    u_int length;
     pcap_t* handle = pcap_open_live(dev, BUFSIZE, 1, 1000, errbuf);
     if (handle == NULL){
         printf("%s : %s \n", dev, errbuf);
@@ -84,14 +89,13 @@ int main(int argc, char* argv[]) {
         int res = pcap_next_ex(handle, &header, &packet);
         if (res == 0) continue;
         if (res == -1 || res == -2) exit(1);
-        PrintEthernetHeader(packet);
         packet += 14;
-        PrintIPHeader(packet);
         tlen = (IPH *)packet;
-        lengh = htons(tlen->TotalLen) - (uint16_t)(tlen->IHL)*4;
+        tcp_off = (TCPH *)packet;
+        length = htons(tlen->TotalLen) - (uint16_t)(tlen->IHL)*4 -htons(tcp_off->Offset);
         packet +=(uint16_t)(tlen->IHL)*4;
-        PrintTCPHeader(packet);
-        packet += ( u_char)lengh;
+        packet += (u_char)length;
+        len = length;
         PrintHttpHeader(packet);
     }
 
@@ -99,40 +103,37 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void PrintEthernetHeader(const u_char *packet){
-    EthernetH *eh;
-    eh = (EthernetH *)packet;
-    printf("\n======== Ethernet Header ========\n");
-    printf("Dst Mac %02x:%02x:%02x:%02x:%02x:%02x \n",eh -> DesMac[0],eh -> DesMac[1],eh -> DesMac[2],eh -> DesMac[3],eh -> DesMac[4],eh -> DesMac[5]);
-    printf("Src Mac %02x:%02x:%02x:%02x:%02x:%02x \n",eh -> SrcMac[0],eh -> SrcMac[1],eh -> SrcMac[2],eh -> SrcMac[3],eh -> SrcMac[4],eh -> SrcMac[5]);
-
-}
-
-void PrintIPHeader(const u_char *packet){
-    IPH *ih;
-    ih = (IPH *)packet;
-    printf("======== IP Header ========\n");
-    if (ih -> Protocal == 0x06) printf ("TCP\n");
-    printf("Src IP  : %s\n", inet_ntoa(ih->SrcAdd) );
-        printf("Dst IP  : %s\n", inet_ntoa(ih->DstAdd) );
-
-}
-
-void PrintTCPHeader(const u_char *packet){
-    TCPH *th;
-    th = (TCPH *)packet;
-    printf("======== TCP Heather ========\n");
-    printf("Src Port : %d\n", ntohs(th ->SrcPort));
-    printf("Dst Port : %d\n", ntohs(th -> DstPort));
-}
-
 void PrintHttpHeader(const uint8_t *packet){
     HttpH *hh;
     hh = (HttpH *)packet;
-    printf("======== Http Heather ========\n");
-    for(int i =0; i<16; i++) {
-        printf("%02x ",hh -> HTP[i]);
-    }
-    printf("\n");
+    const char gilgil[23] = {0x48, 0x6f, 0x73, 0x74, 0x3a, 0x20, 0x74, 0x65, 0x73, 0x74, 0x2e, 0x67, 0x69, 0x6c, 0x2e, 0x6e, 0x65, 0x74, 0x0d, 0x0a};
+
+    //for(i =0; i< len; i++) if( memcmp(hh->HTP[i], gilgil, 24) == 0) printf("Bad site\n");
+//    for(int i =0; i<16; i++) {
+//        printf("%02x  ",hh -> HTP[i]);
+//    }
+//    printf("\n");
+
+//    for(int i =0; i< len; i++) {
+//        if( memcmp(((const void*)hh->HTP[i], (const void*)gilgil[i], 1) == 0 )&& (memcmp((const void*)hh->HTP[i+1], (const void)gilgil[i+1], 1) == 0 )&&
+//            memcmp(hh->HTP[i+2], gilgil[i+2], 1) == 0 && memcmp(hh->HTP[i+3], gilgil[i+3], 1) == 0 &&
+//            memcmp(hh->HTP[i+4], gilgil[i+4], 1) == 0 && memcmp(hh->HTP[i+5], gilgil[i+5], 1) == 0 &&
+//            memcmp(hh->HTP[i+6], gilgil[i+6], 1) == 0 && memcmp(hh->HTP[i+7], gilgil[i+7], 1) == 0 &&
+//            memcmp(hh->HTP[i+8], gilgil[i+8], 1) == 0 && memcmp(hh->HTP[i+9], gilgil[i+9], 1) == 0 &&
+//            memcmp(hh->HTP[i+10], gilgil[i+10], 1) == 0 && memcmp(hh->HTP[i+11], gilgil[i+11], 1) == 0 &&
+//            memcmp(hh->HTP[i+12], gilgil[i+12], 1) == 0 && memcmp(hh->HTP[i+13], gilgil[i+13], 1) == 0 &&
+//            memcmp(hh->HTP[i+14], gilgil[i+14], 1) == 0 && memcmp(hh->HTP[i+15], gilgil[i+15], 1) == 0 &&
+//            memcmp(hh->HTP[i+16], gilgil[i+16], 1) == 0 && memcmp(hh->HTP[i+17], gilgil[i+17], 1) == 0 &&
+//            memcmp(hh->HTP[i+18], gilgil[i+18], 1) == 0 && memcmp(hh->HTP[i+19], gilgil[i+19], 1) == 0 &&
+//            memcmp(hh->HTP[i+20], gilgil[i+20], 1) == 0 && memcmp(hh->HTP[i+21], gilgil[i+21], 1) == 0 &&
+//            memcmp(hh->HTP[i+22], gilgil[i+22], 1) == 0)printf("Bad site\n");
+//    }
+   if( strcmp(hh->HTP, gilgil) == 0)
+   {
+       printf("======== Http Heather ========\n");
+       printf("Bad site\n");
+   }
+
+
 }
 
